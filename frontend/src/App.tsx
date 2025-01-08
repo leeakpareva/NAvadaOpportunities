@@ -160,29 +160,30 @@ export default function App() {
               </motion.div>
             </div>
             
-            <div className="flex gap-2">
-              <motion.div whileHover={{ scale: 1.05 }}>
-                <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 transition-colors">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }}>
-                <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 transition-colors">
-                  <Bell className="h-4 w-4 mr-2" />
-                  Notifications
-                </Button>
-              </motion.div>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 transition-colors">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 transition-colors">
+                    <Bell className="h-4 w-4 mr-2" />
+                    Notifications
+                  </Button>
+                </motion.div>
+              </div>
+              <div className="flex">
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <CVUpload 
+                    onUploadSuccess={handleCVUpload}
+                    onUploadError={(error) => console.error(error)}
+                  />
+                </motion.div>
+              </div>
             </div>
-          </motion.div>
-
-          <motion.div className="max-w-4xl mx-auto mt-4">
-            <motion.div whileHover={{ scale: 1.05 }}>
-              <CVUpload 
-                onUploadSuccess={handleCVUpload}
-                onUploadError={(error) => console.error(error)}
-              />
-            </motion.div>
           </motion.div>
 
           <motion.div 
