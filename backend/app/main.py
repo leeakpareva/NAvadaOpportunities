@@ -141,40 +141,80 @@ async def configure_slack(credentials: Dict):
 async def test_notifications():
     """Test endpoint to verify Slack notifications"""
     try:
-        # Test job notification
-        test_job = {
-            "id": "test-1",
-            "title": "Test Job Position",
-            "company": "NAVADA Test Corp",
-            "location": "Remote",
-            "salary_range": {
-                "min": 85000,
-                "max": 150000
+        # Test job notifications (multiple jobs to verify batch processing)
+        test_jobs = [
+            {
+                "id": "test-1",
+                "title": "Senior Program Manager",
+                "company": "NAVADA Tech Solutions",
+                "location": "Remote - UK",
+                "salary_range": {
+                    "min": 85000,
+                    "max": 150000
+                },
+                "description": "Leading digital transformation projects with blockchain integration.",
+                "employment_type": "Full-time",
+                "url": "https://example.com/test-job-1",
+                "score_details": {
+                    "category_scores": {
+                        "technical": 0.85,
+                        "artistic": 0.75
+                    }
+                }
             },
-            "description": "This is a test job posting to verify Slack notifications.",
-            "employment_type": "Full-time",
-            "url": "https://example.com/test-job"
-        }
+            {
+                "id": "test-2",
+                "title": "Blockchain Technical Lead",
+                "company": "DeFi Innovations",
+                "location": "Remote - Global",
+                "salary_range": {
+                    "min": 95000,
+                    "max": 180000
+                },
+                "description": "Leading blockchain development and smart contract implementation.",
+                "employment_type": "Contract",
+                "url": "https://example.com/test-job-2",
+                "score_details": {
+                    "category_scores": {
+                        "technical": 0.95,
+                        "artistic": 0.65
+                    }
+                }
+            }
+        ]
         
-        # Test PR notification
-        test_pr = {
-            "title": "Test Pull Request",
-            "author": "Devin",
-            "status": "Open",
-            "url": "https://github.com/example/test-pr",
-            "description": "This is a test PR to verify Slack notifications."
-        }
+        # Test PR notifications (multiple PRs to verify formatting)
+        test_prs = [
+            {
+                "title": "feat: implement job matching algorithm",
+                "author": "Devin",
+                "status": "Open",
+                "url": "https://github.com/example/test-pr-1",
+                "description": "Implements CV-based job matching with scoring system."
+            },
+            {
+                "title": "fix: resolve notification formatting issues",
+                "author": "Devin",
+                "status": "Review Needed",
+                "url": "https://github.com/example/test-pr-2",
+                "description": "Updates Slack message formatting for better readability."
+            }
+        ]
         
         # Send test notifications
-        job_result = await notification_service.send_job_notification(test_job)
-        pr_result = await notification_service.send_pr_notification(test_pr)
+        jobs_result = await notification_service.send_batch_job_notifications(test_jobs)
+        pr_results = []
+        for pr in test_prs:
+            result = await notification_service.send_pr_notification(pr)
+            pr_results.append(result)
         
         return {
             "success": True,
             "results": {
-                "job_notification": job_result,
-                "pr_notification": pr_result
-            }
+                "job_notifications": jobs_result,
+                "pr_notifications": pr_results
+            },
+            "message": "Test notifications sent successfully. Please check the Slack channel."
         }
     except Exception as e:
         logger.error(f"Error testing notifications: {str(e)}")

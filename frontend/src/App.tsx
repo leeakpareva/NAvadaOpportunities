@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Brain, Search, Filter, Bell } from 'lucide-react';
 import { CVUpload } from './components/CVUpload';
 import { JobMatches } from './components/JobMatches';
+import { NotificationTest } from './components/NotificationTest';
 import { updateProfile, getJobMatches } from './lib/api';
 import type { CVParseResponse, JobMatch } from './types/files';
 import { motion } from 'framer-motion';
@@ -158,10 +159,11 @@ export default function App() {
             transition={{ delay: 0.4 }}
           >
             <Tabs defaultValue="opportunities" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-white/5">
+              <TabsList className="grid w-full grid-cols-4 bg-white/5">
                 <TabsTrigger value="opportunities" className="data-[state=active]:bg-white/10">Opportunities</TabsTrigger>
                 <TabsTrigger value="applied" className="data-[state=active]:bg-white/10">Applied</TabsTrigger>
                 <TabsTrigger value="insights" className="data-[state=active]:bg-white/10">Insights</TabsTrigger>
+                <TabsTrigger value="notifications" className="data-[state=active]:bg-white/10">Notifications</TabsTrigger>
               </TabsList>
               
               <TabsContent value="opportunities" className="space-y-4 mt-4">
@@ -188,6 +190,18 @@ export default function App() {
                     <CardTitle className="text-white">Analytics & Insights</CardTitle>
                     <CardDescription className="text-white/60">View trends and performance metrics</CardDescription>
                   </CardHeader>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="notifications">
+                <Card className="bg-white/5 border-white/10">
+                  <CardHeader>
+                    <CardTitle className="text-white">Notification Settings</CardTitle>
+                    <CardDescription className="text-white/60">Configure and test Slack notifications</CardDescription>
+                  </CardHeader>
+                  <div className="p-6">
+                    <NotificationTest />
+                  </div>
                 </Card>
               </TabsContent>
             </Tabs>

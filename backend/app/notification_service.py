@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List
 import os
 import aiohttp
 from datetime import datetime
@@ -8,75 +8,37 @@ logger = logging.getLogger(__name__)
 
 class NotificationService:
     def __init__(self):
-        self.client_id = os.getenv('SLACK_CLIENT_ID')
-        self.client_secret = os.getenv('SLACK_CLIENT_SECRET')
+        self.webhook_url = os.getenv('SLACK_WEBHOOK_URL')
         self.channel = os.getenv('SLACK_CHANNEL', 'navadaopportunities')
-        self.access_token = None
+        if not self.webhook_url:
+            logger.warning("Slack webhook URL not configured")
         
-    async def authenticate(self):
-        """Authenticate with Slack using OAuth"""
-        if not self.client_id or not self.client_secret:
-            raise ValueError("Slack client credentials not configured")
+    async def send_webhook_notification(self, message: str) -> bool:
+        """Send notification to Slack via webhook"""
+        if not self.webhook_url:
+            logger.error("Slack webhook URL not configured")
+            return False
             
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    'https://slack.com/api/oauth.v2.access',
-                    data={
-                        'client_id': self.client_id,
-                        'client_secret': self.client_secret,
-                        'grant_type': 'client_credentials'
-                    }
+                    self.webhook_url,
+                    json={"text": message}
                 ) as response:
                     if response.status == 200:
-                        data = await response.json()
-                        self.access_token = data.get('access_token')
-                        if not self.access_token:
-                            raise ValueError("No access token in response")
-                        logger.info("Successfully authenticated with Slack")
+                        logger.info("Successfully sent webhook notification")
+                        return True
                     else:
-                        raise ValueError(f"Authentication failed: {await response.text()}")
-        except Exception as e:
-            logger.error(f"Slack authentication error: {str(e)}")
-            raise
-    async def send_pr_notification(self, pr: Dict) -> bool:
-        """Send PR notification to Slack channel via OAuth API"""
-        try:
-            if not self.access_token:
-                await self.authenticate()
-                
-            message = self.format_pr_notification(pr)
-            
-            payload = {
-                "channel": self.channel,
-                "text": message,
-                "username": "NAVADA Bot",
-                "icon_emoji": ":robot_face:"
-            }
-            
-            headers = {
-                "Authorization": f"Bearer {self.access_token}",
-                "Content-Type": "application/json"
-            }
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    'https://slack.com/api/chat.postMessage',
-                    headers=headers,
-                    json=payload
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get('ok'):
-                            logger.info(f"Successfully sent PR notification for {pr.get('title')}")
-                            return True
-                        else:
-                            logger.error(f"Slack API error: {data.get('error')}")
-                            return False
-                    else:
-                        logger.error(f"Failed to send PR notification: {await response.text()}")
+                        logger.error(f"Failed to send webhook notification: {await response.text()}")
                         return False
-                        
+        except Exception as e:
+            logger.error(f"Error sending webhook notification: {str(e)}")
+            return False
+    async def send_pr_notification(self, pr: Dict) -> bool:
+        """Send PR notification to Slack channel via webhook"""
+        try:
+            message = self.format_pr_notification(pr)
+            return await self.send_webhook_notification(message)
         except Exception as e:
             logger.error(f"Error sending PR notification: {str(e)}")
             return False
@@ -131,61 +93,20 @@ Match Scores:
             return f'£{min_salary:,} - £{max_salary:,}'
             
     async def send_job_notification(self, job: Dict) -> bool:
-        """Send job notification to Slack channel via OAuth API"""
+        """Send job notification to Slack channel via webhook"""
         try:
-            if not self.access_token:
-                await self.authenticate()
-                
             message = self.format_job_notification(job)
-            
-            payload = {
-                "channel": self.channel,
-                "text": message,
-                "username": "NAVADA Job Finder",
-                "icon_emoji": ":briefcase:"
-            }
-            
-            headers = {
-                "Authorization": f"Bearer {self.access_token}",
-                "Content-Type": "application/json"
-            }
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    'https://slack.com/api/chat.postMessage',
-                    headers=headers,
-                    json=payload
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get('ok'):
-                            logger.info(f"Successfully sent job notification for {job.get('title')}")
-                            return True
-                        else:
-                            logger.error(f"Slack API error: {data.get('error')}")
-                            return False
-                    else:
-                        logger.error(f"Failed to send job notification: {await response.text()}")
-                        return False
-                        
+            return await self.send_webhook_notification(message)
         except Exception as e:
             logger.error(f"Error sending job notification: {str(e)}")
             return False
             
     async def send_batch_job_notifications(self, jobs: List[Dict]) -> Dict[str, int]:
-        """Send notifications for multiple jobs via OAuth API"""
+        """Send notifications for multiple jobs via webhook"""
         success_count = 0
         failed_count = 0
         
         try:
-            if not self.access_token:
-                await self.authenticate()
-                
-            headers = {
-                "Authorization": f"Bearer {self.access_token}",
-                "Content-Type": "application/json"
-            }
-            
             # Group jobs into blocks of 5 to avoid message length limits
             for i in range(0, len(jobs), 5):
                 job_batch = jobs[i:i+5]
@@ -194,31 +115,15 @@ Match Scores:
                     message = self.format_job_notification(job)
                     messages.append(message)
                 
-                payload = {
-                    "channel": self.channel,
-                    "text": f"🔍 New Job Matches Found ({len(job_batch)} positions)\n\n" + 
-                           "\n\n---\n\n".join(messages),
-                    "username": "NAVADA Job Finder",
-                    "icon_emoji": ":briefcase:"
-                }
+                batch_message = f"🔍 New Job Matches Found ({len(job_batch)} positions)\n\n" + \
+                              "\n\n---\n\n".join(messages)
                 
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        'https://slack.com/api/chat.postMessage',
-                        headers=headers,
-                        json=payload
-                    ) as response:
-                        if response.status == 200:
-                            data = await response.json()
-                            if data.get('ok'):
-                                success_count += len(job_batch)
-                                logger.info(f"Successfully sent notifications for {len(job_batch)} jobs")
-                            else:
-                                failed_count += len(job_batch)
-                                logger.error(f"Slack API error: {data.get('error')}")
-                        else:
-                            failed_count += len(job_batch)
-                            logger.error(f"Failed to send notifications: {await response.text()}")
+                if await self.send_webhook_notification(batch_message):
+                    success_count += len(job_batch)
+                    logger.info(f"Successfully sent notifications for {len(job_batch)} jobs")
+                else:
+                    failed_count += len(job_batch)
+                    logger.error("Failed to send batch notifications")
                             
         except Exception as e:
             logger.error(f"Error sending batch notifications: {str(e)}")
