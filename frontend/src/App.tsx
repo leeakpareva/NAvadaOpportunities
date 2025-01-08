@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Brain, Search, Sparkles, Filter, Bell } from 'lucide-react';
+import { Brain, Search, Filter, Bell } from 'lucide-react';
 import { CVUpload } from './components/CVUpload';
+import { JobMatches } from './components/JobMatches';
 import { updateProfile, getJobMatches } from './lib/api';
 import type { CVParseResponse, JobMatch } from './types/files';
 import { motion } from 'framer-motion';
 import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
-import { Badge } from './components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription } from './components/ui/card';
 
 export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,8 +28,6 @@ export default function App() {
         cvData: data,
         preferences: {
           job_types: ['remote'],
-          min_salary: 100000,
-          currency: 'GBP',
           notifications: {
             email: true,
             daily_summary: true
@@ -42,8 +40,7 @@ export default function App() {
       // Fetch matching jobs
       const response = await getJobMatches(sessionId, {
         remoteOnly: true,
-        minSalary: 100000,
-        employmentTypes: ['full-time', 'contract']
+        employmentTypes: ['full-time', 'contract', 'self-employed', 'freelance']
       });
       
       setOpportunities(response.matches);
@@ -169,92 +166,10 @@ export default function App() {
               
               <TabsContent value="opportunities" className="space-y-4 mt-4">
                 <motion.div variants={container} initial="hidden" animate="show">
-                  {applicationStatus === 'uploading' ? (
-                    <motion.div variants={item}>
-                      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
-                        <CardContent className="py-8">
-                          <div className="text-center text-white/60">Processing your CV...</div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ) : applicationStatus === 'matching' ? (
-                    <motion.div variants={item}>
-                      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
-                        <CardContent className="py-8">
-                          <div className="text-center text-white/60">Finding matching opportunities...</div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ) : opportunities.length === 0 ? (
-                    <motion.div variants={item}>
-                      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
-                        <CardContent className="py-8">
-                          <div className="text-center text-white/60">
-                            Upload your CV to see matching opportunities
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ) : (
-                    opportunities.map((match) => (
-                      <motion.div key={match.job.id} variants={item}>
-                        <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
-                          <CardHeader>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-xl mb-1 text-white">{match.job.title}</CardTitle>
-                                <CardDescription className="text-white/60">
-                                  {match.job.company} • {match.job.location}
-                                </CardDescription>
-                              </div>
-                              {match.job.url && (
-                                <motion.div whileHover={{ scale: 1.05 }}>
-                                  <a
-                                    href={match.job.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white">
-                                      <Sparkles className="h-4 w-4 mr-2" />
-                                      View Job
-                                    </Button>
-                                  </a>
-                                </motion.div>
-                              )}
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-sm text-white/60 mb-3">{match.job.description}</p>
-                            <div className="flex gap-2 flex-wrap">
-                              {match.score_details.matched_keywords.map((keyword) => (
-                                <Badge 
-                                  key={keyword} 
-                                  variant="secondary" 
-                                  className="bg-white/5 text-white hover:bg-white/10 transition-colors"
-                                >
-                                  {keyword}
-                                </Badge>
-                              ))}
-                            </div>
-                            <div className="flex gap-4 mt-4">
-                              <div className="flex items-center gap-2">
-                                <div className="text-xs text-white/60">Match Score</div>
-                                <Badge variant="outline" className="bg-white/5 border-white/20 text-white">
-                                  {(match.score_details.total_score * 100).toFixed(0)}%
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="text-xs text-white/60">CV Relevance</div>
-                                <Badge variant="outline" className="bg-white/5 border-white/20 text-white">
-                                  {(match.score_details.cv_relevance * 100).toFixed(0)}%
-                                </Badge>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))
-                  )}
+                  <JobMatches 
+                    matches={opportunities}
+                    isLoading={applicationStatus !== 'idle'}
+                  />
                 </motion.div>
               </TabsContent>
               

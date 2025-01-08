@@ -6,7 +6,7 @@ import {
   type UserProfile,
 } from '@/types/files';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = '';
 
 /**
  * Parse a CV file and extract structured data
@@ -18,6 +18,7 @@ export async function parseCV(file: File): Promise<CVParseResponse> {
   const response = await fetch(`${API_BASE_URL}/api/parse-cv`, {
     method: 'POST',
     body: formData,
+    credentials: 'omit'
   });
 
   if (!response.ok) {
@@ -35,7 +36,7 @@ export async function getJobMatches(
   userId: string,
   options: {
     remoteOnly?: boolean;
-    minSalary?: number;
+    minSalary?: number | null;
     employmentTypes?: string[];
   } = {}
 ): Promise<JobMatchResponse> {
@@ -54,6 +55,7 @@ export async function getJobMatches(
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'omit'
     }
   );
 
@@ -80,6 +82,7 @@ export async function updateProfile(profileData: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(profileData),
+    credentials: 'omit',
   });
 
   if (!response.ok) {
@@ -101,6 +104,7 @@ export async function getProfile(
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'omit',
   });
 
   if (!response.ok) {

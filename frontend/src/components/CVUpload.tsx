@@ -26,12 +26,12 @@ export function CVUpload({ onUploadSuccess, onUploadError }: CVUploadProps) {
   };
 
   return (
-    <div className="w-full max-w-md p-4 bg-white rounded-lg shadow-sm">
+    <div className="w-full max-w-md p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg">
       <label
         htmlFor="cv-upload"
-        className="block w-full p-4 text-center border-2 border-dashed rounded-lg cursor-pointer hover:border-blue-500 transition-colors"
+        className="block w-full p-4 text-center border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-white/40 transition-colors"
       >
-        <span className="text-gray-600">
+        <span className="text-white/60">
           {isUploading ? 'Uploading...' : 'Upload your CV (PDF, DOC, DOCX)'}
         </span>
         <input
@@ -44,7 +44,7 @@ export function CVUpload({ onUploadSuccess, onUploadError }: CVUploadProps) {
         />
       </label>
       {isUploading && (
-        <div className="mt-2 text-sm text-gray-500 text-center">
+        <div className="mt-2 text-sm text-white/40 text-center">
           Analyzing your CV...
         </div>
       )}
