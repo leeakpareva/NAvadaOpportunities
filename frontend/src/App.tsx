@@ -20,10 +20,13 @@ export default function App() {
 
   const handleCVUpload = async (data: CVParseResponse['data']) => {
     try {
-      // Create/update user profile with CV data
       setApplicationStatus('uploading');
+      console.log('Processing CV data:', data);
+      
       // Create anonymous profile for job matching
       const sessionId = 'session_' + Date.now();
+      console.log('Created session ID:', sessionId);
+      
       await updateProfile({
         userId: sessionId,
         cvData: data,
@@ -37,16 +40,24 @@ export default function App() {
       });
       
       setApplicationStatus('matching');
+      console.log('Profile updated, fetching matches...');
       
-      // Fetch matching jobs
+      // Fetch matching jobs with broader criteria
       const response = await getJobMatches(sessionId, {
         remoteOnly: true,
         employmentTypes: ['full-time', 'contract', 'self-employed', 'freelance']
       });
       
-      setOpportunities(response.matches);
+      console.log('Received matches:', response);
+      if (response.matches && response.matches.length > 0) {
+        setOpportunities(response.matches);
+      } else {
+        console.log('No matches found');
+      }
     } catch (error) {
       console.error('Error processing CV:', error);
+      // Show error in UI
+      setOpportunities([]);
     } finally {
       setApplicationStatus('idle');
     }
