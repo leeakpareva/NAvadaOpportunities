@@ -8,6 +8,7 @@ from datetime import datetime
 from app.cv_parser import parse_cv
 from app.job_matcher import JobMatcher
 from app.profile_manager import ProfileManager, ProfileData
+from app.notification_service import NotificationService
 
 app = FastAPI(title="NAVADA Job Finder API")
 
@@ -25,6 +26,7 @@ app.add_middleware(
 
 # Initialize managers
 profile_manager = ProfileManager()
+notification_service = NotificationService()
 
 import tempfile
 import os
@@ -221,10 +223,18 @@ async def match_jobs(
             })
         
         logger.info(f"Found {len(matches)} matches for user {user_id}")
+        
+        # Send notifications for new job matches
+        notification_results = await notification_service.send_batch_job_notifications(
+            [match["job"] for match in matches]
+        )
+        logger.info(f"Notification results: {notification_results}")
+        
         return {
             "success": True,
             "matches": matches,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
+            "notifications": notification_results
         }
         
     except Exception as e:
