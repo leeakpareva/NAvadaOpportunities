@@ -106,6 +106,37 @@ async def get_profile(user_id: str):
         raise HTTPException(status_code=404, detail="Profile not found")
     return {"success": True, "profile": profile.to_dict()}
 
+@app.post("/api/config/slack")
+async def configure_slack(credentials: Dict):
+    """Securely configure Slack credentials"""
+    try:
+        # Validate required fields
+        required_fields = ['client_id', 'client_secret']
+        for field in required_fields:
+            if field not in credentials:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required field: {field}"
+                )
+        
+        # Store credentials securely (in environment for now)
+        os.environ['SLACK_CLIENT_ID'] = credentials['client_id']
+        os.environ['SLACK_CLIENT_SECRET'] = credentials['client_secret']
+        
+        # Initialize notification service
+        notification_service = NotificationService()
+        
+        # Test authentication
+        await notification_service.authenticate()
+        
+        return {"success": True, "message": "Slack credentials configured successfully"}
+    except Exception as e:
+        logger.error(f"Error configuring Slack credentials: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error configuring Slack credentials: {str(e)}"
+        )
+
 @app.post("/api/test/notifications")
 async def test_notifications():
     """Test endpoint to verify Slack notifications"""
