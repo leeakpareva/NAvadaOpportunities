@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "navada-backend"
+version = "0.1.0"
+description = "NAVADA Job Finder Backend"
+authors = ["NAVADA Team"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.6"
+uvicorn = {extras = ["standard"], version = "^0.34.0"}
+python-multipart = "^0.0.20"
+supabase = "^2.11.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
