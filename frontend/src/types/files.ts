@@ -76,3 +76,21 @@ export interface ProfileResponse {
   success: boolean;
   profile: UserProfile;
 }
+
+export interface NotificationTestResponse {
+  success: boolean;
+  results: {
+    job_notifications: {
+      success: number;
+      failed: number;
+      total: number;
+    };
+    pr_notifications: boolean[];
+  };
+  message: string;
+}
+
+export interface SlackConfigResponse {
+  success: boolean;
+  message: string;
+}

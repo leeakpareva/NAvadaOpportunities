@@ -106,6 +106,123 @@ async def get_profile(user_id: str):
         raise HTTPException(status_code=404, detail="Profile not found")
     return {"success": True, "profile": profile.to_dict()}
 
+@app.post("/api/config/slack")
+async def configure_slack(credentials: Dict):
+    """Securely configure Slack credentials"""
+    try:
+        # Validate required fields
+        required_fields = ['client_id', 'client_secret']
+        for field in required_fields:
+            if field not in credentials:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required field: {field}"
+                )
+        
+        # Store credentials securely (in environment for now)
+        os.environ['SLACK_CLIENT_ID'] = credentials['client_id']
+        os.environ['SLACK_CLIENT_SECRET'] = credentials['client_secret']
+        
+        # Initialize notification service
+        notification_service = NotificationService()
+        
+        # Test authentication
+        await notification_service.authenticate()
+        
+        return {"success": True, "message": "Slack credentials configured successfully"}
+    except Exception as e:
+        logger.error(f"Error configuring Slack credentials: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error configuring Slack credentials: {str(e)}"
+        )
+
+@app.post("/api/test/notifications")
+async def test_notifications():
+    """Test endpoint to verify Slack notifications"""
+    try:
+        # Test job notifications (multiple jobs to verify batch processing)
+        test_jobs = [
+            {
+                "id": "test-1",
+                "title": "Senior Program Manager",
+                "company": "NAVADA Tech Solutions",
+                "location": "Remote - UK",
+                "salary_range": {
+                    "min": 85000,
+                    "max": 150000
+                },
+                "description": "Leading digital transformation projects with blockchain integration.",
+                "employment_type": "Full-time",
+                "url": "https://example.com/test-job-1",
+                "score_details": {
+                    "category_scores": {
+                        "technical": 0.85,
+                        "artistic": 0.75
+                    }
+                }
+            },
+            {
+                "id": "test-2",
+                "title": "Blockchain Technical Lead",
+                "company": "DeFi Innovations",
+                "location": "Remote - Global",
+                "salary_range": {
+                    "min": 95000,
+                    "max": 180000
+                },
+                "description": "Leading blockchain development and smart contract implementation.",
+                "employment_type": "Contract",
+                "url": "https://example.com/test-job-2",
+                "score_details": {
+                    "category_scores": {
+                        "technical": 0.95,
+                        "artistic": 0.65
+                    }
+                }
+            }
+        ]
+        
+        # Test PR notifications (multiple PRs to verify formatting)
+        test_prs = [
+            {
+                "title": "feat: implement job matching algorithm",
+                "author": "Devin",
+                "status": "Open",
+                "url": "https://github.com/example/test-pr-1",
+                "description": "Implements CV-based job matching with scoring system."
+            },
+            {
+                "title": "fix: resolve notification formatting issues",
+                "author": "Devin",
+                "status": "Review Needed",
+                "url": "https://github.com/example/test-pr-2",
+                "description": "Updates Slack message formatting for better readability."
+            }
+        ]
+        
+        # Send test notifications
+        jobs_result = await notification_service.send_batch_job_notifications(test_jobs)
+        pr_results = []
+        for pr in test_prs:
+            result = await notification_service.send_pr_notification(pr)
+            pr_results.append(result)
+        
+        return {
+            "success": True,
+            "results": {
+                "job_notifications": jobs_result,
+                "pr_notifications": pr_results
+            },
+            "message": "Test notifications sent successfully. Please check the Slack channel."
+        }
+    except Exception as e:
+        logger.error(f"Error testing notifications: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error testing notifications: {str(e)}"
+        )
+
 @app.get("/api/jobs/match/{user_id}")
 async def match_jobs(
     user_id: str,

@@ -4,7 +4,9 @@ import {
   type JobMatchResponse,
   type ProfileResponse,
   type UserProfile,
-} from '@/types/files';
+  type NotificationTestResponse,
+  type SlackConfigResponse,
+} from '../types/files';
 
 const API_BASE_URL = '';
 
@@ -110,6 +112,50 @@ export async function getProfile(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to fetch profile');
+  }
+
+  return response.json();
+}
+
+/**
+ * Test Slack notifications (jobs and PRs)
+ */
+export async function testNotifications(): Promise<NotificationTestResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/test/notifications`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'omit',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to test notifications');
+  }
+
+  return response.json();
+}
+
+/**
+ * Configure Slack integration with webhook URL
+ */
+export async function configureSlack(credentials: {
+  client_id: string;
+  client_secret: string;
+}): Promise<SlackConfigResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/config/slack`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(credentials),
+    credentials: 'omit',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to configure Slack');
   }
 
   return response.json();
