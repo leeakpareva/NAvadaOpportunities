@@ -1,41 +1,40 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from typing import Dict, List, Optional
 import os
+import aiohttp
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class NotificationService:
     def __init__(self):
-        self.slack_email = os.getenv('SLACK_NOTIFICATION_EMAIL', 
-            'navadaopportunities-aaaapb3zmuwocgmz3g6s2oq2pm@navadagroup.slack.com')
+        self.webhook_url = os.getenv('SLACK_WEBHOOK_URL', 
+            'https://hooks.slack.com/services/navadaopportunities')
+        self.channel = os.getenv('SLACK_CHANNEL', 'navadaopportunities')
         
     async def send_pr_notification(self, pr: Dict) -> bool:
-        """Send PR notification to Slack channel via email"""
+        """Send PR notification to Slack channel via webhook"""
         try:
             message = self.format_pr_notification(pr)
             
-            # Create email message
-            msg = MIMEMultipart()
-            msg['From'] = os.getenv('SMTP_FROM', 'navada@opportunities.com')
-            msg['To'] = self.slack_email
-            msg['Subject'] = f"PR Update: {pr.get('title')}"
+            payload = {
+                "channel": self.channel,
+                "text": message,
+                "username": "NAVADA Bot",
+                "icon_emoji": ":robot_face:"
+            }
             
-            # Add message body
-            msg.attach(MIMEText(message, 'plain'))
-            
-            # Connect to SMTP server and send
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                server.starttls()
-                server.login(
-                    os.getenv('SMTP_USER', ''),
-                    os.getenv('SMTP_PASSWORD', '')
-                )
-                server.send_message(msg)
-            
-            return True
+            async with aiohttp.ClientSession() as session:
+                async with session.post(self.webhook_url, json=payload) as response:
+                    if response.status == 200:
+                        logger.info(f"Successfully sent PR notification for {pr.get('title')}")
+                        return True
+                    else:
+                        logger.error(f"Failed to send PR notification: {await response.text()}")
+                        return False
+                        
         except Exception as e:
-            print(f"Error sending PR notification: {str(e)}")
+            logger.error(f"Error sending PR notification: {str(e)}")
             return False
         
     def format_job_notification(self, job: Dict) -> str:
@@ -88,68 +87,64 @@ Match Scores:
             return f'£{min_salary:,} - £{max_salary:,}'
             
     async def send_job_notification(self, job: Dict) -> bool:
-        """Send job notification to Slack channel via email"""
+        """Send job notification to Slack channel via webhook"""
         try:
             message = self.format_job_notification(job)
             
-            # Create email message
-            msg = MIMEMultipart()
-            msg['From'] = os.getenv('SMTP_USER', 'navada@opportunities.com')
-            msg['To'] = self.slack_email
-            msg['Subject'] = f"New Job Match: {job.get('title')} at {job.get('company')}"
+            payload = {
+                "channel": self.channel,
+                "text": message,
+                "username": "NAVADA Job Finder",
+                "icon_emoji": ":briefcase:"
+            }
             
-            # Add message body
-            msg.attach(MIMEText(message, 'plain'))
-            
-            # Connect to SMTP server and send
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                server.starttls()
-                server.login(
-                    os.getenv('SMTP_USER', ''),
-                    os.getenv('SMTP_PASSWORD', '')
-                )
-                server.send_message(msg)
-            
-            return True
+            async with aiohttp.ClientSession() as session:
+                async with session.post(self.webhook_url, json=payload) as response:
+                    if response.status == 200:
+                        logger.info(f"Successfully sent job notification for {job.get('title')}")
+                        return True
+                    else:
+                        logger.error(f"Failed to send job notification: {await response.text()}")
+                        return False
+                        
         except Exception as e:
-            print(f"Error sending notification: {str(e)}")
+            logger.error(f"Error sending job notification: {str(e)}")
             return False
             
     async def send_batch_job_notifications(self, jobs: List[Dict]) -> Dict[str, int]:
-        """Send notifications for multiple jobs"""
+        """Send notifications for multiple jobs via webhook"""
         success_count = 0
         failed_count = 0
         
-        # Group jobs into a single email
-        all_messages = []
-        for job in jobs:
-            message = self.format_job_notification(job)
-            all_messages.append(message)
-            
         try:
-            # Create email message
-            msg = MIMEMultipart()
-            msg['From'] = os.getenv('SMTP_USER', 'navada@opportunities.com')
-            msg['To'] = self.slack_email
-            msg['Subject'] = f"New Job Matches Found ({len(jobs)} positions)"
-            
-            # Add all job notifications to email body
-            body = "\n\n---\n\n".join(all_messages)
-            msg.attach(MIMEText(body, 'plain'))
-            
-            # Connect to SMTP server and send
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                server.starttls()
-                server.login(
-                    os.getenv('SMTP_USER', ''),
-                    os.getenv('SMTP_PASSWORD', '')
-                )
-                server.send_message(msg)
+            # Group jobs into blocks of 5 to avoid message length limits
+            for i in range(0, len(jobs), 5):
+                job_batch = jobs[i:i+5]
+                messages = []
+                for job in job_batch:
+                    message = self.format_job_notification(job)
+                    messages.append(message)
                 
-            success_count = len(jobs)
+                payload = {
+                    "channel": self.channel,
+                    "text": f"🔍 New Job Matches Found ({len(job_batch)} positions)\n\n" + 
+                           "\n\n---\n\n".join(messages),
+                    "username": "NAVADA Job Finder",
+                    "icon_emoji": ":briefcase:"
+                }
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(self.webhook_url, json=payload) as response:
+                        if response.status == 200:
+                            success_count += len(job_batch)
+                            logger.info(f"Successfully sent notifications for {len(job_batch)} jobs")
+                        else:
+                            failed_count += len(job_batch)
+                            logger.error(f"Failed to send notifications: {await response.text()}")
+                            
         except Exception as e:
-            print(f"Error sending batch notifications: {str(e)}")
-            failed_count = len(jobs)
+            logger.error(f"Error sending batch notifications: {str(e)}")
+            failed_count = len(jobs) - success_count
                 
         return {
             "success": success_count,
