@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api } from '../lib/api';
+import { configureSlack } from '../lib/api';
 
 interface SlackConfigProps {
   onConfigured: () => void;
@@ -17,12 +17,12 @@ export const SlackConfig: React.FC<SlackConfigProps> = ({ onConfigured }) => {
     setError(null);
 
     try {
-      const response = await api.post('/config/slack', {
+      const response = await configureSlack({
         client_id: clientId,
         client_secret: clientSecret
       });
 
-      if (response.data.success) {
+      if (response.success) {
         onConfigured();
       } else {
         setError('Failed to configure Slack integration');

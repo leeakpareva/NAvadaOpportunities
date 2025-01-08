@@ -1,5 +1,5 @@
 import {
-  type UploadFile,
+  // Removed unused type
   type CVParseResponse,
   type JobMatchResponse,
   type ProfileResponse,

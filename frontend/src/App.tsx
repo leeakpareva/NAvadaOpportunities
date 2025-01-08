@@ -179,10 +179,12 @@ export default function App() {
               
               <TabsContent value="opportunities" className="space-y-4 mt-4">
                 <motion.div variants={container} initial="hidden" animate="show">
-                  <JobMatches 
-                    matches={opportunities}
-                    isLoading={applicationStatus !== 'idle'}
-                  />
+                  <motion.div variants={item}>
+                    <JobMatches 
+                      matches={opportunities}
+                      isLoading={applicationStatus !== 'idle'}
+                    />
+                  </motion.div>
                 </motion.div>
               </TabsContent>
               
