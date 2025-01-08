@@ -1,4 +1,4 @@
-import { useState } from 'react'
+// Removed unused FC import
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Progress } from './ui/progress'
