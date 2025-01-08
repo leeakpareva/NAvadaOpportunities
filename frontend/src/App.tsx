@@ -1,37 +1,58 @@
 import { useState } from 'react';
 import { Brain, Search, Sparkles, Filter, Bell } from 'lucide-react';
+import { CVUpload } from './components/CVUpload';
+import { updateProfile, getJobMatches } from './lib/api';
+import type { CVParseResponse, JobMatch } from './types/files';
 import { motion } from 'framer-motion';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Input } from './components/ui/input';
+import { Button } from './components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
+import { Badge } from './components/ui/badge';
 
 export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   
-  const opportunities = [
-    {
-      id: 1,
-      title: "AI Art Director",
-      company: "Creative Futures Inc.",
-      location: "Remote",
-      techScore: 0.9,
-      artisticScore: 0.85,
-      tags: ["AI", "Creative Direction", "Digital Art"],
-      description: "Lead the development of AI-powered creative tools and direct artistic vision.",
-    },
-    {
-      id: 2,
-      title: "Blockchain Creative Developer",
-      company: "Web3 Studios",
-      location: "San Francisco, CA",
-      techScore: 0.95,
-      artisticScore: 0.8,
-      tags: ["Blockchain", "Creative Coding", "NFT"],
-      description: "Create innovative blockchain-based artistic experiences and NFT platforms.",
+  const [opportunities, setOpportunities] = useState<JobMatch[]>([]);
+  // Track application status
+  const [applicationStatus, setApplicationStatus] = useState<'idle' | 'uploading' | 'matching'>('idle');
+
+  const handleCVUpload = async (data: CVParseResponse['data']) => {
+    try {
+      // Create/update user profile with CV data
+      setApplicationStatus('uploading');
+      // Create anonymous profile for job matching
+      const sessionId = 'session_' + Date.now();
+      await updateProfile({
+        userId: sessionId,
+        cvData: data,
+        preferences: {
+          job_types: ['remote'],
+          min_salary: 100000,
+          currency: 'GBP',
+          notifications: {
+            email: true,
+            daily_summary: true
+          }
+        }
+      });
+      
+      setApplicationStatus('matching');
+      
+      // Fetch matching jobs
+      const response = await getJobMatches(sessionId, {
+        remoteOnly: true,
+        minSalary: 100000,
+        employmentTypes: ['full-time', 'contract']
+      });
+      
+      setOpportunities(response.matches);
+    } catch (error) {
+      console.error('Error processing CV:', error);
+    } finally {
+      setApplicationStatus('idle');
     }
-  ];
+  };
 
   const container = {
     hidden: { opacity: 0 },
@@ -65,11 +86,18 @@ export default function App() {
             animate={{ y: 0 }}
             transition={{ type: "spring", stiffness: 100 }}
           >
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 360 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Brain className="w-24 h-24 text-white mb-4" />
+            <motion.div className="space-y-6">
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Brain className="w-24 h-24 text-white mb-4" />
+              </motion.div>
+              
+              <CVUpload 
+                onUploadSuccess={handleCVUpload}
+                onUploadError={(error) => console.error(error)}
+              />
             </motion.div>
             <motion.h1 
               className="text-6xl font-bold text-white"
@@ -141,50 +169,92 @@ export default function App() {
               
               <TabsContent value="opportunities" className="space-y-4 mt-4">
                 <motion.div variants={container} initial="hidden" animate="show">
-                  {opportunities.map((job) => (
-                    <motion.div key={job.id} variants={item}>
-                      <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-xl mb-1 text-white">{job.title}</CardTitle>
-                              <CardDescription className="text-white/60">{job.company} • {job.location}</CardDescription>
-                            </div>
-                            <motion.div whileHover={{ scale: 1.05 }}>
-                              <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white">
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Apply Now
-                              </Button>
-                            </motion.div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-white/60 mb-3">{job.description}</p>
-                          <div className="flex gap-2 flex-wrap">
-                            {job.tags.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="bg-white/5 text-white hover:bg-white/10 transition-colors">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex gap-4 mt-4">
-                            <div className="flex items-center gap-2">
-                              <div className="text-xs text-white/60">Tech Score</div>
-                              <Badge variant="outline" className="bg-white/5 border-white/20 text-white">
-                                {(job.techScore * 100).toFixed(0)}%
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="text-xs text-white/60">Artistic Score</div>
-                              <Badge variant="outline" className="bg-white/5 border-white/20 text-white">
-                                {(job.artisticScore * 100).toFixed(0)}%
-                              </Badge>
-                            </div>
+                  {applicationStatus === 'uploading' ? (
+                    <motion.div variants={item}>
+                      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
+                        <CardContent className="py-8">
+                          <div className="text-center text-white/60">Processing your CV...</div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ) : applicationStatus === 'matching' ? (
+                    <motion.div variants={item}>
+                      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
+                        <CardContent className="py-8">
+                          <div className="text-center text-white/60">Finding matching opportunities...</div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ) : opportunities.length === 0 ? (
+                    <motion.div variants={item}>
+                      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
+                        <CardContent className="py-8">
+                          <div className="text-center text-white/60">
+                            Upload your CV to see matching opportunities
                           </div>
                         </CardContent>
                       </Card>
                     </motion.div>
-                  ))}
+                  ) : (
+                    opportunities.map((match) => (
+                      <motion.div key={match.job.id} variants={item}>
+                        <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-xl mb-1 text-white">{match.job.title}</CardTitle>
+                                <CardDescription className="text-white/60">
+                                  {match.job.company} • {match.job.location}
+                                </CardDescription>
+                              </div>
+                              {match.job.url && (
+                                <motion.div whileHover={{ scale: 1.05 }}>
+                                  <a
+                                    href={match.job.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white">
+                                      <Sparkles className="h-4 w-4 mr-2" />
+                                      View Job
+                                    </Button>
+                                  </a>
+                                </motion.div>
+                              )}
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm text-white/60 mb-3">{match.job.description}</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {match.score_details.matched_keywords.map((keyword) => (
+                                <Badge 
+                                  key={keyword} 
+                                  variant="secondary" 
+                                  className="bg-white/5 text-white hover:bg-white/10 transition-colors"
+                                >
+                                  {keyword}
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex gap-4 mt-4">
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-white/60">Match Score</div>
+                                <Badge variant="outline" className="bg-white/5 border-white/20 text-white">
+                                  {(match.score_details.total_score * 100).toFixed(0)}%
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-white/60">CV Relevance</div>
+                                <Badge variant="outline" className="bg-white/5 border-white/20 text-white">
+                                  {(match.score_details.cv_relevance * 100).toFixed(0)}%
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))
+                  )}
                 </motion.div>
               </TabsContent>
               
