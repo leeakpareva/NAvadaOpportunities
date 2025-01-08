@@ -102,11 +102,6 @@ export default function App() {
               >
                 <Brain className="w-24 h-24 text-white mb-4" />
               </motion.div>
-              
-              <CVUpload 
-                onUploadSuccess={handleCVUpload}
-                onUploadError={(error) => console.error(error)}
-              />
             </motion.div>
             <motion.h1 
               className="text-6xl font-bold text-white"
@@ -132,20 +127,38 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <motion.div 
-              className="relative group"
-              whileHover={{ scale: 1.01 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Search className="absolute left-3 top-3 h-5 w-5 text-white/60" />
-              <Input
-                type="text"
-                placeholder="Search for opportunities..."
-                className="pl-10 h-12 bg-white/5 border-white/10 focus:border-white/20 transition-all duration-300 hover:bg-white/10 text-white placeholder:text-white/60"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </motion.div>
+            <div className="flex gap-2 items-center">
+              <motion.div 
+                className="relative group flex-1"
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Search className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                <Input
+                  type="text"
+                  placeholder="Search for opportunities..."
+                  className="pl-10 h-12 bg-white/5 border-white/10 focus:border-white/20 transition-all duration-300 hover:bg-white/10 text-white placeholder:text-white/60"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-white/20 text-white hover:bg-white/10 transition-colors h-12"
+                  onClick={() => {
+                    if (searchTerm.trim()) {
+                      console.log('Searching for:', searchTerm);
+                      // Add search logic here
+                    }
+                  }}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </Button>
+              </motion.div>
+            </div>
             
             <div className="flex gap-2">
               <motion.div whileHover={{ scale: 1.05 }}>
@@ -161,6 +174,15 @@ export default function App() {
                 </Button>
               </motion.div>
             </div>
+          </motion.div>
+
+          <motion.div className="max-w-4xl mx-auto mt-4">
+            <motion.div whileHover={{ scale: 1.05 }}>
+              <CVUpload 
+                onUploadSuccess={handleCVUpload}
+                onUploadError={(error) => console.error(error)}
+              />
+            </motion.div>
           </motion.div>
 
           <motion.div 
