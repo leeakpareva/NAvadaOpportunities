@@ -106,6 +106,52 @@ async def get_profile(user_id: str):
         raise HTTPException(status_code=404, detail="Profile not found")
     return {"success": True, "profile": profile.to_dict()}
 
+@app.post("/api/test/notifications")
+async def test_notifications():
+    """Test endpoint to verify Slack notifications"""
+    try:
+        # Test job notification
+        test_job = {
+            "id": "test-1",
+            "title": "Test Job Position",
+            "company": "NAVADA Test Corp",
+            "location": "Remote",
+            "salary_range": {
+                "min": 85000,
+                "max": 150000
+            },
+            "description": "This is a test job posting to verify Slack notifications.",
+            "employment_type": "Full-time",
+            "url": "https://example.com/test-job"
+        }
+        
+        # Test PR notification
+        test_pr = {
+            "title": "Test Pull Request",
+            "author": "Devin",
+            "status": "Open",
+            "url": "https://github.com/example/test-pr",
+            "description": "This is a test PR to verify Slack notifications."
+        }
+        
+        # Send test notifications
+        job_result = await notification_service.send_job_notification(test_job)
+        pr_result = await notification_service.send_pr_notification(test_pr)
+        
+        return {
+            "success": True,
+            "results": {
+                "job_notification": job_result,
+                "pr_notification": pr_result
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error testing notifications: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error testing notifications: {str(e)}"
+        )
+
 @app.get("/api/jobs/match/{user_id}")
 async def match_jobs(
     user_id: str,
